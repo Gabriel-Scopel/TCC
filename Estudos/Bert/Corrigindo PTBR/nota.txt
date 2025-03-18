@@ -1,2 +1,0 @@
-o código está corrigindo apenas respostas com até 512 tokens
-    -tentar ajustar depois
