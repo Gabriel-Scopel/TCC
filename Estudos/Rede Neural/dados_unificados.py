@@ -2,25 +2,25 @@ import json
 
 # Lista de arquivos para cada embedding
 arquivos_elmo = [
-    "D:/Downloads/ProjTCCMurilo/correcao_elmo_PT.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_elmo_EN.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_elmo_ES.json"
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_elmo_PT.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/correcao_elmo_EN.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/correcao_elmo_ES.json"
 ]
 
 arquivos_use = [
-    "D:/Downloads/ProjTCCMurilo/correcao_usePT.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_use_EN.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_use_ES.json"
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_use.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/correcao_use_EN.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/correcao_use_ES.json"
 ]
 
 arquivos_bert = [
     # "D:/Downloads/ProjTCCMurilo/correcao_bertPT.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_bertEN.json",
-    "D:/Downloads/ProjTCCMurilo/correcao_bertES.json"
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/bert_graded_responses.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/graded_responses_es.json"
 ]
 
 arquivos_bert2 = [ 
-    "D:/Downloads/ProjTCCMurilo/correcao_bertPT.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_bert.json",
 ]
 
 dados_unificados = {}
@@ -97,7 +97,7 @@ carregar_e_adicionar_bert(arquivos_bert, "bert_grade")
 carregar_e_adicionar_bert2(arquivos_bert2, "bert_grade")
 
 # Salvar os dados unificados
-output_path = "D:/Downloads/ProjTCCMurilo/dados_unificados.json"
+output_path = "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Rede Neural/dados_unificados.json"
 with open(output_path, "w", encoding="utf-8") as f:
     json.dump(list(dados_unificados.values()), f, ensure_ascii=False, indent=4)
 

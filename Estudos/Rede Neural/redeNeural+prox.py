@@ -11,7 +11,7 @@ from tensorflow.keras import layers, regularizers
 # --- Etapa 1: Carregar e preparar os dados ---
 
 # Carrega o JSON unificado
-with open('dados_unificados.json', 'r', encoding='utf-8') as f:
+with open('C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Rede Neural/dados_unificados.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 # Converte para DataFrame
@@ -66,7 +66,7 @@ model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001),
 model.summary()
 
 # --- Etapa 4: Treinamento ---
-history = model.fit(X_train, Y_train, epochs=200, batch_size=8, validation_data=(X_test, Y_test))
+history = model.fit(X_train, Y_train, epochs=20, batch_size=8, validation_data=(X_test, Y_test))
 
 # --- Etapa 5: Avaliação ---
 loss, rmse, mae = model.evaluate(X_test, Y_test)

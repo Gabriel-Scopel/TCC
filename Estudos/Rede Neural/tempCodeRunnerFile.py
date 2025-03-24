@@ -1,90 +1,104 @@
 import json
-import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 
-# Função para carregar JSON
-def carregar_json(caminho):
-    with open(caminho, 'r', encoding='utf-8') as f:
-        return json.load(f)
+# Lista de arquivos para cada embedding
+arquivos_elmo = [
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_elmo_PT.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/correcao_elmo_EN.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/correcao_elmo_ES.json"
+]
 
-# Caminhos dos arquivos JSON
-caminho_bert = "bert_graded_responses.json"
-caminho_elmo = "correcao_elmo_EN.json"
-caminho_use = "correcao_use_EN.json"
+arquivos_use = [
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_use.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/correcao_use_EN.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/correcao_use_ES.json"
+]
 
-bert_data = carregar_json(caminho_bert)
-elmo_data = carregar_json(caminho_elmo)
-use_data = carregar_json(caminho_use)
+arquivos_bert = [
+    # "D:/Downloads/ProjTCCMurilo/correcao_bertPT.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ENG/bert_graded_responses.json",
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo ES/graded_responses_es.json"
+]
 
-# Indexar respostas para cada modelo
-def indexar_respostas_bert(dados):
-    index = {}
-    for questao in dados:
-        for resposta in questao["responses_students"]:
-            key = (questao["number_question"], resposta["answer_question"])
-            index[key] = (resposta["bert_grade"], resposta["grade"])  # Nota do corretor também
-    return index
+arquivos_bert2 = [ 
+    "C:/Users/Gabriel/Documents/FEI/TCC/TCC/Estudos/Correções/Corrigindo PTBR/correcao_bert.json",
+]
 
-def indexar_respostas_generico(dados, modelo):
-    index = {}
-    for resposta in dados:
-        key = (resposta["number_question"], resposta["answer_question"])
-        index[key] = resposta[f"{modelo}_grade"]
-    return index
+dados_unificados = {}
 
-bert_index = indexar_respostas_bert(bert_data)
-elmo_index = indexar_respostas_generico(elmo_data, "elmo")
-use_index = indexar_respostas_generico(use_data, "use")
+# Função para carregar e adicionar os dados de ELMO e USE (estrutura normal)
+def carregar_e_adicionar(arquivos, chave_nota):
+    for arquivo in arquivos:
+        with open(arquivo, "r", encoding="utf-8") as f:
+            dados_json = json.load(f)
+            for item in dados_json:
+                # Tenta obter a nota original (original_grade) ou, se não existir, tenta 'grade'
+                original_grade = item.get("original_grade") or item.get("grade")
+                chave = (item["number_question"], item["answer_question"])  # Criar chave única
+                if chave in dados_unificados:
+                    dados_unificados[chave][chave_nota] = item[chave_nota]
+                    if "original_grade" not in dados_unificados[chave] and original_grade is not None:
+                        dados_unificados[chave]["original_grade"] = original_grade
+                else:
+                    dados_unificados[chave] = {
+                        "number_question": item["number_question"],
+                        "answer_question": item["answer_question"],
+                        chave_nota: item[chave_nota]
+                    }
+                    if original_grade is not None:
+                        dados_unificados[chave]["original_grade"] = original_grade
 
-# Criar dataset combinando as notas
-X = []
-y = []
+# Função para carregar e adicionar os dados de BERT (estrutura diferente)
+def carregar_e_adicionar_bert(arquivos, chave_nota):
+    for arquivo in arquivos:
+        with open(arquivo, "r", encoding="utf-8") as f:
+            dados_json = json.load(f)
+            for item in dados_json:
+                for resposta_aluno in item["responses_students"]:  # Acessando dentro de responses_students
+                    original_grade = resposta_aluno.get("original_grade") or resposta_aluno.get("grade")
+                    chave = (item["number_question"], resposta_aluno["answer_question"])
+                    if chave in dados_unificados:
+                        dados_unificados[chave][chave_nota] = resposta_aluno[chave_nota]
+                        if "original_grade" not in dados_unificados[chave] and original_grade is not None:
+                            dados_unificados[chave]["original_grade"] = original_grade
+                    else:
+                        dados_unificados[chave] = {
+                            "number_question": item["number_question"],
+                            "answer_question": resposta_aluno["answer_question"],
+                            chave_nota: resposta_aluno[chave_nota]
+                        }
+                        if original_grade is not None:
+                            dados_unificados[chave]["original_grade"] = original_grade
 
-for key, (bert_grade, human_grade) in bert_index.items():
-    if key in elmo_index and key in use_index:
-        elmo_grade = elmo_index[key]
-        use_grade = use_index[key]
-        
-        # Criar features extras
-        mean_grade = np.mean([bert_grade, elmo_grade, use_grade])
-        variance_grade = np.var([bert_grade, elmo_grade, use_grade])  # Nova feature
+# Função para carregar e adicionar os dados de BERT com estrutura similar aos demais
+def carregar_e_adicionar_bert2(arquivos, chave_nota):
+    for arquivo in arquivos:
+        with open(arquivo, "r", encoding="utf-8") as f:
+            dados_json = json.load(f)
+            for item in dados_json:
+                original_grade = item.get("original_grade") or item.get("grade")
+                chave = (item["number_question"], item["answer_question"])  # Criar chave única
+                if chave in dados_unificados:
+                    dados_unificados[chave][chave_nota] = item[chave_nota]
+                    if "original_grade" not in dados_unificados[chave] and original_grade is not None:
+                        dados_unificados[chave]["original_grade"] = original_grade
+                else:
+                    dados_unificados[chave] = {
+                        "number_question": item["number_question"],
+                        "answer_question": item["answer_question"],
+                        chave_nota: item[chave_nota]
+                    }
+                    if original_grade is not None:
+                        dados_unificados[chave]["original_grade"] = original_grade
 
-        X.append([bert_grade, elmo_grade, use_grade, mean_grade, variance_grade])
-        y.append(human_grade)
+# Carregar os dados de cada embedding
+carregar_e_adicionar(arquivos_elmo, "elmo_grade")
+carregar_e_adicionar(arquivos_use, "use_grade")
+carregar_e_adicionar_bert(arquivos_bert, "bert_grade")
+carregar_e_adicionar_bert2(arquivos_bert2, "bert_grade")
 
-# Converter para arrays numpy
-X = np.array(X)
-y = np.array(y).reshape(-1, 1)  # Garantir que y seja uma matriz coluna
+# Salvar os dados unificados
+output_path = "C:\Users\Gabriel\Documents\FEI\TCC\TCC\Estudos\Rede Neural"
+with open(output_path, "w", encoding="utf-8") as f:
+    json.dump(list(dados_unificados.values()), f, ensure_ascii=False, indent=4)
 
-# Normalizar os dados
-scaler_X = MinMaxScaler()
-X = scaler_X.fit_transform(X)
-
-scaler_y = MinMaxScaler()
-y = scaler_y.fit_transform(y)
-
-# Dividir em treino e teste
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Criar modelo de rede neural com ajustes
-model = keras.Sequential([
-    keras.layers.Dense(64, activation="relu", input_shape=(5,)),  # Aumento de neurônios e uso de ReLU
-    keras.layers.Dropout(0.3),  # Aumento do dropout
-    keras.layers.Dense(32, activation="relu"),
-    keras.layers.Dense(16, activation="relu"),
-    keras.layers.Dense(1, activation="linear")  # Saída contínua
-])
-
-# Compilar o modelo com um otimizador diferente e taxa de aprendizado ajustada
-model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mae", metrics=["mae"])
-
-# Treinar o modelo
-model.fit(X_train, y_train, epochs=150, validation_data=(X_test, y_test), batch_size=16, verbose=1)
-
-# Avaliação
-loss, mae = model.evaluate(X_test, y_test)
-mae_original = scaler_y.inverse_transform([[mae]])[0][0]  # Convertendo para escala original
-print(f"Erro Médio Absoluto (MAE): {mae_original:.2f}")  # Verificar o MAE após as melhorias
+print(f"Dados unificados salvos em {output_path}")
