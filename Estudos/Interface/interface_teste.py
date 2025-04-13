@@ -6,8 +6,9 @@ import tensorflow_hub as hub
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-import tensorflow as tf
 import plotly.express as px
+import ollama
+import re
 
 # ===========================================
 # Funções para carregar os modelos
@@ -51,11 +52,36 @@ def compute_similarity_use(reference, answer):
     ans_vec = use_model([answer])[0].numpy().reshape(1, -1)
     return cosine_similarity(ref_vec, ans_vec)[0][0]
 
+def compute_similarity_deepseek(reference, answer):
+    prompt = (
+        "Avalie a similaridade entre a frase fornecida e a frase preestabelecida numa escala de 0 a 5, "
+        "onde 0 significa nenhuma similaridade e 5 significa total similaridade. "
+        "Responda apenas com a nota, no formato: Nota: X "
+        "Sem explicações, sem observações, apenas a nota.\n\n"
+        f"Frase preestabelecida: \"{reference}\"\n"
+        f"Frase fornecida: \"{answer}\""
+    )
+
+    response = ollama.chat(
+        model='deepseek-r1:1.5b',
+        messages=[{'role': 'user', 'content': prompt}]
+    )
+
+    resposta = response['message']['content'].strip()
+
+    match = re.search(r'Nota:\s*([\d.,]+)', resposta)
+    if match:
+        return float(match.group(1).replace(',', '.')) / 5.0  # Normalizar para entre 0 e 1
+    else:
+        return 0.0
+
 # Função para normalizar nota
+
 def normalize_grade(similarity, min_sim=0.0, max_sim=1.0, min_score=0.0, max_score=5.0):
     return round(min_score + (max_score - min_score) * ((similarity - min_sim) / (max_sim - min_sim)), 2)
 
 # Função para calcular média ponderada
+
 def weighted_average(grades, weights):
     return round(np.average(grades, weights=weights), 2)
 
@@ -126,20 +152,21 @@ with tab1:
                 bert_grade = normalize_grade(compute_similarity_bert(reference, user_answer))
                 elmo_grade = normalize_grade(compute_similarity_elmo(reference, user_answer))
                 use_grade = normalize_grade(compute_similarity_use(reference, user_answer))
+                deepseek_grade = normalize_grade(compute_similarity_deepseek(reference, user_answer))
 
-                # Média ponderada (igual peso)
-                final_grade = weighted_average([bert_grade, elmo_grade, use_grade], weights=[1, 1, 1])
+                final_grade = weighted_average(
+                    [bert_grade, elmo_grade, use_grade, deepseek_grade],
+                    weights=[1, 1, 1, 1]
+                )
                 final_scores.append(final_grade)
 
                 st.markdown(f"**Pergunta {idx + 1}**")
-                st.write(f"BERT: {bert_grade} | ELMo: {elmo_grade} | USE: {use_grade}")
+                st.write(f"BERT: {bert_grade} | ELMo: {elmo_grade} | USE: {use_grade} | DeepSeek: {deepseek_grade}")
                 st.write(f"Nota final da questão: **{final_grade}**")
 
-            # Média geral
             overall_average = round(sum(final_scores) / len(final_scores), 2)
             st.markdown(f"## Média geral final: **{overall_average}**")
 
-            # Salvar no Excel acumulando registros
             try:
                 df_existing = pd.read_excel("Usuario.xlsx")
             except FileNotFoundError:
@@ -160,7 +187,6 @@ with tab2:
     try:
         df_results = pd.read_excel("Usuario.xlsx")
 
-        # Gráfico 1: Usuários x Média Geral
         fig1 = px.bar(
             df_results,
             y="Nome",
@@ -168,12 +194,11 @@ with tab2:
             orientation='h',
             title="Média Geral por Usuário",
             labels={"Média Geral": "Nota", "Nome": "Usuário"},
-            color="Nome",  # Aqui adiciona cores diferentes por usuário
-            color_discrete_sequence=px.colors.qualitative.Safe  # Paleta de cores segura e variada
+            color="Nome",
+            color_discrete_sequence=px.colors.qualitative.Safe
         )
         st.plotly_chart(fig1)
 
-        # Gráfico 2: Questões mais acertadas
         question_scores = df_results.drop(columns=["Nome", "Média Geral"]).mean().sort_values(ascending=False)
 
         fig2 = px.bar(
@@ -181,7 +206,7 @@ with tab2:
             y=question_scores.values,
             title="Média por Questão",
             labels={"x": "Questão", "y": "Nota Média"},
-            color=question_scores.index,  # Aqui adiciona cores diferentes por questão
+            color=question_scores.index,
             color_discrete_sequence=px.colors.qualitative.Safe
         )
         st.plotly_chart(fig2)

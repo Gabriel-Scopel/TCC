@@ -1,0 +1,10 @@
+streamlit
+Pillow
+sentence-transformers
+scikit-learn
+tensorflow
+tensorflow-hub
+numpy
+pandas
+plotly
+openpyxl
