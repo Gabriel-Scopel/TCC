@@ -19,11 +19,11 @@ def load_bert_model():
 
 @st.cache_resource
 def load_elmo_model():
-    return hub.load("https://www.kaggle.com/models/google/elmo/tensorFlow1/elmo/3?tfhub-redirect=true")
+    return hub.load("https://tfhub.dev/google/elmo/3")  # Versão estável do ELMo
 
 @st.cache_resource
 def load_use_model():
-    return hub.load("https://www.kaggle.com/models/google/universal-sentence-encoder/tensorFlow2/universal-sentence-encoder/2?tfhub-redirect=true")
+    return hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")  # USE mais recente
 
 bert_model = load_bert_model()
 elmo_model = load_elmo_model()
