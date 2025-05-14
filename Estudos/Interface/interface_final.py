@@ -16,15 +16,15 @@ import re
 
 @st.cache_resource
 def load_bert_model():
-    return SentenceTransformer('neuralmind/bert-base-portuguese-cased')
+    return SentenceTransformer('neuralmind/bert-base-portuguese-cased')  # Modelo local do HuggingFace (auto-cache)
 
 @st.cache_resource
 def load_elmo_model():
-    return hub.load("https://tfhub.dev/google/elmo/3")
+    return hub.load(r"C:\Users\Gabriel\.cache\kagglehub\models\google\elmo\tensorFlow1\elmo\3")
 
 @st.cache_resource
 def load_use_model():
-    return hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+    return hub.load(r"C:\Users\Gabriel\.cache\kagglehub\models\google\universal-sentence-encoder\tensorFlow1\universal-sentence-encoder\2")
 
 bert_model = load_bert_model()
 elmo_model = load_elmo_model()
@@ -48,8 +48,11 @@ def compute_similarity_elmo(reference, answer):
     return cosine_similarity(ref_vec, ans_vec)[0][0]
 
 def compute_similarity_use(reference, answer):
-    ref_vec = use_model([reference])[0].numpy().reshape(1, -1)
-    ans_vec = use_model([answer])[0].numpy().reshape(1, -1)
+    def get_use_embedding(text):
+        embeddings = use_model.signatures["default"](tf.constant([text]))
+        return embeddings["default"].numpy()[0]
+    ref_vec = get_use_embedding(reference).reshape(1, -1)
+    ans_vec = get_use_embedding(answer).reshape(1, -1)
     return cosine_similarity(ref_vec, ans_vec)[0][0]
 
 def compute_similarity_deepseek(reference, answer):
@@ -193,9 +196,6 @@ with tab2:
             color_discrete_sequence=px.colors.qualitative.Safe
         )
         st.plotly_chart(fig1)
-
-        
-       
 
     except FileNotFoundError:
         st.warning("Ainda não há resultados salvos. Faça uma correção para gerar os dados!")
